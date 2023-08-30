@@ -1,0 +1,143 @@
+%YAML 1.1
+%TAG ! tag:stsci.edu:asdf/
+---
+$schema: "http://stsci.edu/schemas/yaml-schema/draft-01"
+id: "http://example.com/schemas/your-schema-id"
+title: "Hybrid Simulation Model Schema"
+description: "Schema for a hybrid simulation model combining system dynamics and agent-based modeling."
+type: object
+
+definitions:
+  randomValueGenerator:
+    type: object
+    properties:
+      values_range:
+        type: array
+        items:
+          type: number
+        minItems: 2
+        maxItems: 3
+      values_list:
+        type: array
+        items:
+          oneOf:
+            - type: number
+            - type: string
+      distribution:
+        type: string
+        enum: 
+          - "uniform"
+          - "normal"
+          - "binomial"
+          - "poisson"
+          - "exponential"
+          - "gamma"
+          - "beta"
+      dist_params:
+        type: object
+        additionalProperties: true
+    oneOf:
+      - required: ['values_range']
+      - required: ['values_list']
+
+  actionStructure:
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        equation:
+          $ref: '#/definitions/pythonExpression'
+        condition:
+          $ref: '#/definitions/pythonExpression'
+
+  pythonExpression:
+    type: string
+    description: "This should be a valid Python-evaluable expression."
+
+properties:
+  equations:
+    description: "Description for equations."
+    type: object
+    additionalProperties:
+      oneOf:
+        - $ref: '#/definitions/pythonExpression'
+        - type: object
+          properties:
+            resource_changes:
+              type: object
+              additionalProperties: 
+                $ref: '#/definitions/pythonExpression'
+            resource_updates:
+              type: object
+              additionalProperties: 
+                $ref: '#/definitions/pythonExpression'
+            stock_changes:
+              type: object
+              additionalProperties: 
+                $ref: '#/definitions/pythonExpression'
+            stock_updates:
+              type: object
+              additionalProperties: 
+                $ref: '#/definitions/pythonExpression'
+            aux_changes:  # Added this
+              type: object
+              additionalProperties: 
+                $ref: '#/definitions/pythonExpression'
+            aux_updates:  # Added this
+              type: object
+              additionalProperties: 
+                $ref: '#/definitions/pythonExpression'
+
+  system_dynamics:
+    description: "Description for system dynamics."
+    type: object
+    properties:
+      stocks:
+        type: object
+        additionalProperties:
+          type: object
+          properties:
+            initial_value:
+              oneOf:
+                - type: number
+                - type: string
+                - $ref: '#/definitions/randomValueGenerator'
+      flows:
+        type: object
+        additionalProperties:
+          $ref: '#/definitions/actionStructure'
+      auxiliaries:
+        type: object
+        additionalProperties:
+          $ref: '#/definitions/actionStructure'
+
+  agents:
+    description: "Description for agents."
+    type: array
+    items:
+      type: object
+      properties:
+        type: string
+        actions:
+          $ref: '#/definitions/actionStructure'
+        traits:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: number
+              - type: string
+              - $ref: '#/definitions/randomValueGenerator'
+        resources:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: number
+              - type: string
+              - $ref: '#/definitions/randomValueGenerator'
+        memory_size: number
+        population: number
+
+required:
+  - equations
+  - system_dynamics
+  - agents
